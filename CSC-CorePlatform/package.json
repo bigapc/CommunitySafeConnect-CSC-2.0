@@ -1,0 +1,20 @@
+{
+  "name": "csc-coreplatform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CommunitySafeConnect — CSC-CorePlatform monorepo",
+  "workspaces": [
+    "apps/public-app",
+    "apps/control-hub",
+    "shared"
+  ],
+  "scripts": {
+    "dev:public": "npm run dev --workspace=apps/public-app",
+    "dev:hub": "npm run dev --workspace=apps/control-hub",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
