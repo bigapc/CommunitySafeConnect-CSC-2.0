@@ -2,6 +2,21 @@ import { useMemo, useState } from "react";
 
 const hubRoles = ["apc_admin", "apc_security_reviewer", "csc_supervisor"];
 const webhookStorageKey = "csc-command-center-webhooks-v1";
+const auditStorageKey = "csc-audit-log-v1";
+const MAX_AUDIT_ENTRIES = 200;
+
+function loadAuditLog() {
+  try {
+    const raw = window.localStorage.getItem(auditStorageKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistAuditLog(entries) {
+  window.localStorage.setItem(auditStorageKey, JSON.stringify(entries));
+}
 
 const quickTiles = [
   { label: "Active Alerts", value: "4", tone: "#d9545d" },
@@ -98,6 +113,22 @@ async function signPayload(secret, payloadText) {
 export default function ControlHub({ role, onRoleChange, onShowModal }) {
   const canAccess = hubRoles.includes(role);
   const [extensions, setExtensions] = useState(loadExtensions);
+  const [auditLog, setAuditLog] = useState(loadAuditLog);
+
+  const addAuditEntry = (action, detail) => {
+    const entry = {
+      id: `aud-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      time: new Date().toISOString(),
+      actor: role,
+      action,
+      detail,
+    };
+    setAuditLog((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_AUDIT_ENTRIES);
+      persistAuditLog(next);
+      return next;
+    });
+  };
   const [isSending, setIsSending] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEndpoint, setNewEndpoint] = useState("");
@@ -150,6 +181,7 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
       ...extensions,
     ];
     saveExtensions(next);
+    addAuditEntry("webhook.added", `Added extension: ${newName.trim()}`);
     setNewName("");
     setNewEndpoint("");
     setNewSecret("");
@@ -246,6 +278,10 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
     setIsSending(false);
 
     const successCount = results.filter((entry) => entry.ok).length;
+    addAuditEntry(
+      `webhook.dispatch`,
+      `Event "${eventType}" → ${successCount}/${results.length} succeeded`
+    );
     onShowModal?.(
       "Webhook Dispatch Complete",
       <div style={{ color: "var(--muted)" }}>
@@ -408,6 +444,49 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
             </div>
           ))}
         </div>
+      </div>
+      <div style={{ background: "#fff", borderRadius: 18, padding: 16, boxShadow: "var(--shadow)", marginTop: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h2 style={{ margin: 0, color: "var(--navy)", fontSize: 18 }}>Audit Trail</h2>
+          {auditLog.length > 0 && (
+            <button
+              onClick={() => {
+                setAuditLog([]);
+                persistAuditLog([]);
+              }}
+              style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "4px 10px", background: "#fff", color: "var(--muted)", fontSize: 12, cursor: "pointer" }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {auditLog.length === 0 ? (
+          <div style={{ color: "var(--muted)", fontSize: 13, padding: "12px 0" }}>No audit entries yet. Actions will appear here.</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--line)" }}>
+                  {["Time", "Actor", "Action", "Detail"].map((col) => (
+                    <th key={col} style={{ textAlign: "left", padding: "6px 8px", color: "var(--muted)", fontWeight: 600 }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {auditLog.map((entry) => (
+                  <tr key={entry.id} style={{ borderBottom: "1px solid var(--line)" }}>
+                    <td style={{ padding: "7px 8px", whiteSpace: "nowrap", color: "var(--muted)" }}>
+                      {new Date(entry.time).toLocaleString()}
+                    </td>
+                    <td style={{ padding: "7px 8px", color: "var(--navy)", fontWeight: 600, whiteSpace: "nowrap" }}>{entry.actor}</td>
+                    <td style={{ padding: "7px 8px", color: "var(--navy-2)", whiteSpace: "nowrap" }}>{entry.action}</td>
+                    <td style={{ padding: "7px 8px", color: "var(--text)" }}>{entry.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
