@@ -1,14 +1,78 @@
-export default function SOS({ onNavigate }) {
+export default function SOS({ onNavigate, onShowModal }) {
   const handleCommandCenter = () => {
-    alert("Connecting you to the Command Center...\n\nDispatcher: We have your location and alert status. Stay calm.");
+    onShowModal(
+      "Connecting to Command Center",
+      <div>
+        <div style={{ fontSize: 16, color: "var(--navy)", fontWeight: 600, marginBottom: 12 }}>
+          📍 Location verified
+        </div>
+        <p style={{ color: "var(--muted)", marginBottom: 14 }}>
+          A dispatcher has been assigned to your case. They can see your real-time location and alert status.
+        </p>
+        <p style={{ color: "var(--text)" }}>
+          <strong>Dispatcher (Sarah K.):</strong> "We have your location and alert status. Stay calm and stay where you are if it's safe."
+        </p>
+      </div>,
+      [{ label: "Got it", primary: true }]
+    );
   };
 
   const handleEmergency = () => {
-    window.location.href = "tel:911";
+    onShowModal(
+      "Call Emergency Services",
+      <div>
+        <p style={{ color: "var(--muted)", marginBottom: 14 }}>
+          Tap the button below to call 911. This will exit the app and dial emergency services.
+        </p>
+        <p style={{ color: "var(--navy)", fontWeight: 600, fontSize: 18 }}>
+          📞 (555) 911-HELP
+        </p>
+      </div>,
+      [
+        { label: "Cancel", primary: false },
+        {
+          label: "Call 911",
+          primary: true,
+          onClick: () => {
+            window.location.href = "tel:911";
+          },
+        },
+      ]
+    );
   };
 
   const handleMessageCircle = () => {
-    onNavigate("circle");
+    onShowModal(
+      "Message Safety Circle",
+      <div>
+        <p style={{ color: "var(--muted)", marginBottom: 14 }}>
+          Choose who to message about your emergency:
+        </p>
+        <div style={{ display: "grid", gap: 10 }}>
+          {["Sarah Johnson (Sister)", "Mike Chen (Neighbor)", "Dr. Lisa Parks (Doctor)"].map((person) => (
+            <button
+              key={person}
+              onClick={() => {
+                onNavigate("circle");
+              }}
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: 10,
+                padding: 12,
+                background: "#fff",
+                color: "var(--navy)",
+                fontWeight: 600,
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              {person}
+            </button>
+          ))}
+        </div>
+      </div>,
+      [{ label: "Close", primary: true }]
+    );
   };
 
   return (

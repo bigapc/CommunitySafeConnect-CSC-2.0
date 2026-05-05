@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PublicLayout from "./components/layout/PublicLayout";
+import Modal from "./components/ui/Modal";
 import Home from "./pages/Home";
 import SOS from "./pages/SOS";
 import SafeZones from "./pages/SafeZones";
@@ -8,6 +9,7 @@ import IncidentLog from "./pages/IncidentLog";
 import OrganizationHub from "./pages/OrganizationHub";
 import Settings from "./pages/Settings";
 import ControlHub from "./pages/ControlHub";
+import "./styles/animations.css";
 
 const screens = {
   home: Home,
@@ -45,6 +47,8 @@ export default function App() {
   const initial = readUrlState();
   const [role, setRole] = useState(initial.role);
   const [route, setRoute] = useState(initial.view);
+  const [modal, setModal] = useState({ isOpen: false, title: "", content: null, actions: [] });
+
   const Screen = screens[route] || Home;
 
   const handleNavigate = (nextRoute) => {
@@ -59,9 +63,32 @@ export default function App() {
     writeUrlState(resolvedRole, route);
   };
 
+  const showModal = (title, content, actions = []) => {
+    setModal({ isOpen: true, title, content, actions });
+  };
+
+  const closeModal = () => {
+    setModal({ isOpen: false, title: "", content: null, actions: [] });
+  };
+
   return (
-    <PublicLayout route={route} onNavigate={handleNavigate} role={role}>
-      <Screen onNavigate={handleNavigate} role={role} onRoleChange={handleRoleChange} />
-    </PublicLayout>
+    <>
+      <PublicLayout route={route} onNavigate={handleNavigate} role={role}>
+        <Screen
+          onNavigate={handleNavigate}
+          role={role}
+          onRoleChange={handleRoleChange}
+          onShowModal={showModal}
+        />
+      </PublicLayout>
+      <Modal
+        isOpen={modal.isOpen}
+        title={modal.title}
+        onClose={closeModal}
+        actions={modal.actions}
+      >
+        {modal.content}
+      </Modal>
+    </>
   );
 }

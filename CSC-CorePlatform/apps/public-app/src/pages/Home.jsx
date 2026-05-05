@@ -5,7 +5,7 @@ import { mockNotifications } from "../data/mockNotifications";
 
 const hubRoles = ["apc_admin", "apc_security_reviewer", "csc_supervisor"];
 
-export default function Home({ onNavigate, role }) {
+export default function Home({ onNavigate, role, onShowModal }) {
   const canAccessHub = hubRoles.includes(role);
 
   return (
@@ -38,8 +38,32 @@ export default function Home({ onNavigate, role }) {
 
       <SectionHeader title="Updates" />
       {mockNotifications.map((item) => (
-        <div key={item.id} style={{ background: "#fff", borderRadius: 18, padding: 16, boxShadow: "var(--shadow)", marginBottom: 10 }}>
-          <div style={{ fontWeight: 700 }}>{item.title}</div>
+        <div
+          key={item.id}
+          onClick={() =>
+            onShowModal(
+              item.title,
+              <div>
+                <p style={{ color: "var(--muted)", lineHeight: 1.6 }}>{item.message}</p>
+                <p style={{ color: "var(--navy-2)", fontSize: 12, fontWeight: 600 }}>
+                  {new Date().toLocaleDateString()}
+                </p>
+              </div>,
+              [{ label: "Dismiss", primary: true }]
+            )
+          }
+          style={{
+            background: "#fff",
+            borderRadius: 18,
+            padding: 16,
+            boxShadow: "var(--shadow)",
+            marginBottom: 10,
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            border: "1px solid var(--line)",
+          }}
+        >
+          <div style={{ fontWeight: 700, color: "var(--navy)" }}>{item.title}</div>
           <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>{item.message}</div>
         </div>
       ))}
