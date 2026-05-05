@@ -18,6 +18,43 @@ function persistAuditLog(entries) {
   window.localStorage.setItem(auditStorageKey, JSON.stringify(entries));
 }
 
+// ── Environment Profiles ──────────────────────────────────────────────────────
+const envProfilesKey = "csc-env-profiles-v1";
+const ENV_LABELS = ["dev", "staging", "prod"];
+const APP_SLOTS = [
+  { id: "csc", label: "CSC Public App", description: "CommunitySafeConnect frontend + API" },
+  { id: "app2", label: "App 2 (TBD)", description: "Second Armstrong Pack Company service" },
+  { id: "app3", label: "App 3 (TBD)", description: "Third Armstrong Pack Company service" },
+];
+
+function makeDefaultProfiles() {
+  const out = {};
+  for (const app of APP_SLOTS) {
+    out[app.id] = { dev: "", staging: "", prod: "" };
+  }
+  return out;
+}
+
+function loadEnvProfiles() {
+  try {
+    const raw = window.localStorage.getItem(envProfilesKey);
+    if (!raw) return makeDefaultProfiles();
+    const parsed = JSON.parse(raw);
+    // merge so new app slots always appear
+    const defaults = makeDefaultProfiles();
+    for (const key of Object.keys(defaults)) {
+      if (!parsed[key]) parsed[key] = defaults[key];
+    }
+    return parsed;
+  } catch {
+    return makeDefaultProfiles();
+  }
+}
+
+function persistEnvProfiles(profiles) {
+  window.localStorage.setItem(envProfilesKey, JSON.stringify(profiles));
+}
+
 const quickTiles = [
   { label: "Active Alerts", value: "4", tone: "#d9545d" },
   { label: "Open Incidents", value: "7", tone: "#18355d" },
@@ -114,6 +151,29 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
   const canAccess = hubRoles.includes(role);
   const [extensions, setExtensions] = useState(loadExtensions);
   const [auditLog, setAuditLog] = useState(loadAuditLog);
+  const [envProfiles, setEnvProfiles] = useState(loadEnvProfiles);
+  const [activeEnv, setActiveEnv] = useState("dev");
+
+  const updateProfileUrl = (appId, env, value) => {
+    setEnvProfiles((prev) => {
+      const next = { ...prev, [appId]: { ...prev[appId], [env]: value } };
+      persistEnvProfiles(next);
+      return next;
+    });
+  };
+
+  const saveProfiles = () => {
+    persistEnvProfiles(envProfiles);
+    addAuditEntry("env.profiles.saved", `Saved environment profile for: ${activeEnv}`);
+    onShowModal?.(
+      "Profiles Saved",
+      <div style={{ color: "var(--muted)" }}>
+        Environment profile <strong>{activeEnv}</strong> has been saved locally.
+        Webhook extensions will use these base URLs once the Control Arm backend is wired.
+      </div>,
+      [{ label: "Got it", primary: true }]
+    );
+  };
 
   const addAuditEntry = (action, detail) => {
     const entry = {
@@ -487,6 +547,124 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
             </table>
           </div>
         )}
+      </div>
+
+      {/* ── Environment Profiles ──────────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 18, padding: 16, boxShadow: "var(--shadow)", marginTop: 14 }}>
+        <h2 style={{ marginTop: 0, color: "var(--navy)", fontSize: 18 }}>Environment Profiles</h2>
+        <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>
+          Pre-configure base URLs for each company app per environment. When the Armstrong Pack Company
+          Control Arm backend is ready, connecting everything is a config change here — no code changes needed.
+        </div>
+
+        {/* Environment tab selector */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {ENV_LABELS.map((env) => (
+            <button
+              key={env}
+              onClick={() => setActiveEnv(env)}
+              style={{
+                border: activeEnv === env ? "2px solid var(--navy)" : "1px solid var(--line)",
+                borderRadius: 10,
+                padding: "6px 18px",
+                background: activeEnv === env ? "var(--navy)" : "#fff",
+                color: activeEnv === env ? "#fff" : "var(--navy)",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {env}
+            </button>
+          ))}
+        </div>
+
+        {/* URL inputs per app slot */}
+        <div style={{ display: "grid", gap: 14 }}>
+          {APP_SLOTS.map((app) => (
+            <div key={app.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
+              <div style={{ color: "var(--navy)", fontWeight: 700, marginBottom: 2 }}>{app.label}</div>
+              <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 8 }}>{app.description}</div>
+              <input
+                value={envProfiles[app.id]?.[activeEnv] ?? ""}
+                onChange={(e) => updateProfileUrl(app.id, activeEnv, e.target.value)}
+                placeholder={`Base URL for ${app.label} (${activeEnv})`}
+                style={{
+                  width: "100%",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
+                  padding: 10,
+                  fontSize: 13,
+                  boxSizing: "border-box",
+                  background: envProfiles[app.id]?.[activeEnv] ? "#f8fff9" : "#fff",
+                }}
+              />
+              {envProfiles[app.id]?.[activeEnv] && !isLikelyHttpUrl(envProfiles[app.id][activeEnv]) && (
+                <div style={{ color: "#d9545d", fontSize: 11, marginTop: 4 }}>
+                  Must start with http:// or https://
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={saveProfiles}
+          style={{
+            marginTop: 14,
+            border: 0,
+            borderRadius: 10,
+            padding: "10px 20px",
+            background: "var(--green)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: "pointer",
+            width: "100%",
+          }}
+        >
+          Save {activeEnv.toUpperCase()} Profile
+        </button>
+
+        {/* Summary of all configured endpoints */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ color: "var(--muted)", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+            CONFIGURED ENDPOINTS ACROSS ALL ENVIRONMENTS
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            {APP_SLOTS.map((app) => (
+              <div key={app.id} style={{ fontSize: 12 }}>
+                <span style={{ color: "var(--navy)", fontWeight: 600 }}>{app.label}: </span>
+                {ENV_LABELS.map((env) => {
+                  const url = envProfiles[app.id]?.[env];
+                  return url ? (
+                    <span key={env} style={{ marginRight: 10, color: "var(--text)" }}>
+                      <span
+                        style={{
+                          background: env === "prod" ? "#d9545d" : env === "staging" ? "#f5a623" : "#58b88a",
+                          color: "#fff",
+                          borderRadius: 4,
+                          padding: "1px 5px",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          marginRight: 4,
+                        }}
+                      >
+                        {env}
+                      </span>
+                      {url}
+                    </span>
+                  ) : null;
+                })}
+                {ENV_LABELS.every((env) => !envProfiles[app.id]?.[env]) && (
+                  <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Not configured</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
