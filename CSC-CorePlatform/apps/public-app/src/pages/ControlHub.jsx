@@ -76,12 +76,32 @@ function isLikelyHttpUrl(value) {
   }
 }
 
+async function signPayload(secret, payloadText) {
+  if (typeof window === "undefined" || !window.crypto?.subtle) {
+    throw new Error("Web Crypto is unavailable");
+  }
+
+  const encoder = new TextEncoder();
+  const key = await window.crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await window.crypto.subtle.sign("HMAC", key, encoder.encode(payloadText));
+  const bytes = new Uint8Array(signature);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function ControlHub({ role, onRoleChange, onShowModal }) {
   const canAccess = hubRoles.includes(role);
   const [extensions, setExtensions] = useState(loadExtensions);
   const [isSending, setIsSending] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEndpoint, setNewEndpoint] = useState("");
+  const [newSecret, setNewSecret] = useState("");
 
   const enabledCount = useMemo(
     () => extensions.filter((item) => item.enabled).length,
@@ -122,6 +142,7 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
         id: `wh-${Date.now()}`,
         name: newName.trim(),
         endpoint: newEndpoint.trim(),
+        secret: newSecret.trim(),
         enabled: true,
         lastResult: "Not tested",
         lastEvent: "-",
@@ -131,6 +152,7 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
     saveExtensions(next);
     setNewName("");
     setNewEndpoint("");
+    setNewSecret("");
   };
 
   const sendEvent = async (eventType) => {
@@ -159,22 +181,38 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
         }
 
         try {
+          const eventId = `evt-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+          const body = {
+            eventId,
+            eventType,
+            timestamp,
+            source: "CSC-Command-Center",
+            payload: {
+              role,
+              priority: "high",
+              message: "Event dispatched from CSC Command Center Hub",
+            },
+          };
+          const bodyText = JSON.stringify(body);
+
+          const headers = {
+            "Content-Type": "application/json",
+            "x-csc-source": "command-center-hub",
+            "x-csc-event-id": eventId,
+            "x-csc-timestamp": timestamp,
+            "x-csc-signature-alg": "hmac-sha256",
+          };
+
+          if (item.secret) {
+            const payloadToSign = `${timestamp}.${bodyText}`;
+            const signature = await signPayload(item.secret, payloadToSign);
+            headers["x-csc-signature"] = signature;
+          }
+
           const response = await fetch(item.endpoint, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-csc-source": "command-center-hub",
-            },
-            body: JSON.stringify({
-              eventType,
-              timestamp,
-              source: "CSC-Command-Center",
-              payload: {
-                role,
-                priority: "high",
-                message: "Event dispatched from CSC Command Center Hub",
-              },
-            }),
+            headers,
+            body: bodyText,
           });
 
           return {
@@ -297,12 +335,22 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
             placeholder="Endpoint URL (https://...)"
             style={{ border: "1px solid var(--line)", borderRadius: 10, padding: 10, fontSize: 14 }}
           />
+          <input
+            type="password"
+            value={newSecret}
+            onChange={(event) => setNewSecret(event.target.value)}
+            placeholder="Signing secret (optional but recommended)"
+            style={{ border: "1px solid var(--line)", borderRadius: 10, padding: 10, fontSize: 14 }}
+          />
           <button
             onClick={addExtension}
             style={{ border: 0, borderRadius: 10, padding: 10, background: "var(--navy)", color: "#fff", fontWeight: 700, cursor: "pointer" }}
           >
             Add Webhook Extension
           </button>
+        </div>
+        <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 12 }}>
+          Signature format: HMAC-SHA256 over "timestamp.body" sent in header x-csc-signature.
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -336,6 +384,9 @@ export default function ControlHub({ role, onRoleChange, onShowModal }) {
                 <div>
                   <div style={{ color: "var(--navy)", fontWeight: 700 }}>{item.name}</div>
                   <div style={{ color: "var(--muted)", fontSize: 12, wordBreak: "break-all" }}>{item.endpoint}</div>
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                    Signing: {item.secret ? "Enabled" : "Disabled"}
+                  </div>
                 </div>
                 <label style={{ color: "var(--muted)", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                   <input
