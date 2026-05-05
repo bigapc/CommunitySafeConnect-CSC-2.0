@@ -1,17 +1,24 @@
 export default function SosButton({ onActivate }) {
+  const handleTap = () => {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([40, 50, 40]);
+    }
+    onActivate();
+  };
+
   return (
     <button
-      onClick={onActivate}
+      onClick={handleTap}
       style={{
         width: "100%",
         border: 0,
         borderRadius: 999,
         padding: "28px 20px",
-        background: "radial-gradient(circle at center, #f26d75 0%, var(--red) 60%, #bf3d45 100%)",
+        background: "linear-gradient(135deg, var(--navy), var(--navy-2))",
         color: "#fff",
         fontWeight: 800,
-        fontSize: 24,
-        boxShadow: "0 20px 50px rgba(217,84,93,.32)",
+        fontSize: 22,
+        boxShadow: "0 18px 40px rgba(31, 58, 90, .24)",
         cursor: "pointer",
       }}
     >

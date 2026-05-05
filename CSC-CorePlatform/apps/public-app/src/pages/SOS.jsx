@@ -1,12 +1,19 @@
 export default function SOS() {
   return (
-    <div style={{ background: "#fff", borderRadius: 28, padding: 24, boxShadow: "var(--shadow)" }}>
+    <div style={{ background: "linear-gradient(150deg, #ffffff, var(--bg-soft))", borderRadius: 28, padding: 24, boxShadow: "var(--shadow)", border: "1px solid var(--line)" }}>
       <h1 style={{ marginTop: 0, color: "var(--navy)" }}>We're with you.</h1>
-      <p style={{ color: "var(--muted)" }}>Alert sent. Stay where you are if safe.</p>
+      <p style={{ color: "var(--muted)", lineHeight: 1.6 }}>
+        Alert sent. Stay calm, keep breathing steady, and remain where you are if safe.
+      </p>
       <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
-        <button style={{ border: 0, borderRadius: 18, padding: 16, background: "var(--red)", color: "#fff", fontWeight: 700 }}>Hold to Cancel Alert</button>
-        <button style={{ border: 0, borderRadius: 18, padding: 16, background: "var(--navy)", color: "#fff", fontWeight: 700 }}>Call Emergency Services</button>
+        <button style={{ border: 0, borderRadius: 18, padding: 16, background: "var(--navy)", color: "#fff", fontWeight: 700 }}>
+          Contact Command Center
+        </button>
+        <button style={{ border: 0, borderRadius: 18, padding: 16, background: "var(--accent)", color: "#fff", fontWeight: 700 }}>Call Emergency Services</button>
         <button style={{ border: "1px solid var(--line)", borderRadius: 18, padding: 16, background: "#fff", color: "var(--navy)", fontWeight: 700 }}>Message Safety Circle</button>
+      </div>
+      <div style={{ marginTop: 14, color: "var(--muted)", fontSize: 13 }}>
+        Incident records are preserved. To change or close an emergency record, contact the Command Center/Hub.
       </div>
     </div>
   );

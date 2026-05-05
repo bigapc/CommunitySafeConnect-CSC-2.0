@@ -10,11 +10,11 @@ export default function Home({ onNavigate, role }) {
 
   return (
     <div>
-      <div style={{ background: "#fff", borderRadius: 28, padding: 20, boxShadow: "var(--shadow)", marginBottom: 18 }}>
-        <div style={{ color: "var(--muted)", marginBottom: 14 }}>Connected protection. Real-time support.</div>
+      <div style={{ background: "linear-gradient(155deg, #ffffff, var(--bg-soft))", borderRadius: 28, padding: 20, boxShadow: "var(--shadow)", marginBottom: 18, border: "1px solid var(--line)" }}>
+        <div style={{ color: "var(--muted)", marginBottom: 14 }}>Calm guidance. Verified support. Real-time coordination.</div>
         <SosButton onActivate={() => onNavigate("sos")} />
         <div style={{ marginTop: 16, color: "var(--navy)", fontWeight: 600 }}>You're connected</div>
-        <div style={{ color: "var(--muted)", fontSize: 14 }}>No active alerts right now.</div>
+        <div style={{ color: "var(--muted)", fontSize: 14 }}>No active alerts right now. Command Center is monitoring.</div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
