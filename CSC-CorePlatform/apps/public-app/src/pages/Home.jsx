@@ -5,14 +5,23 @@ import { mockNotifications } from "../data/mockNotifications";
 
 const hubRoles = ["apc_admin", "apc_security_reviewer", "csc_supervisor"];
 
-export default function Home({ onNavigate, role, onShowModal }) {
+export default function Home({ onNavigate, role, onShowModal, onCreateIncident }) {
   const canAccessHub = hubRoles.includes(role);
+
+  const handleSosActivate = () => {
+    onCreateIncident?.({
+      type: "SOS",
+      status: "active",
+      notes: "SOS triggered from Home quick action.",
+    });
+    onNavigate("sos");
+  };
 
   return (
     <div>
       <div style={{ background: "linear-gradient(155deg, #ffffff, var(--bg-soft))", borderRadius: 28, padding: 20, boxShadow: "var(--shadow)", marginBottom: 18, border: "1px solid var(--line)" }}>
         <div style={{ color: "var(--muted)", marginBottom: 14 }}>Calm guidance. Verified support. Real-time coordination.</div>
-        <SosButton onActivate={() => onNavigate("sos")} />
+        <SosButton onActivate={handleSosActivate} />
         <div style={{ marginTop: 16, color: "var(--navy)", fontWeight: 600 }}>You're connected</div>
         <div style={{ color: "var(--muted)", fontSize: 14 }}>No active alerts right now. Command Center is monitoring.</div>
       </div>

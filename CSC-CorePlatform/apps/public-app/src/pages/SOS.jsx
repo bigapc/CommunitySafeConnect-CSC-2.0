@@ -1,4 +1,6 @@
-export default function SOS({ onNavigate, onShowModal }) {
+export default function SOS({ onNavigate, onShowModal, incidents = [] }) {
+  const activeIncident = incidents.find((incident) => incident.status === "active");
+
   const handleCommandCenter = () => {
     onShowModal(
       "Connecting to Command Center",
@@ -81,6 +83,12 @@ export default function SOS({ onNavigate, onShowModal }) {
       <p style={{ color: "var(--muted)", lineHeight: 1.6 }}>
         Alert sent. Stay calm, keep breathing steady, and remain where you are if safe.
       </p>
+      {activeIncident ? (
+        <div style={{ marginTop: 12, border: "1px solid var(--line)", borderRadius: 14, padding: 12, background: "#fff" }}>
+          <div style={{ color: "var(--navy)", fontWeight: 700, fontSize: 13 }}>Active Incident: {activeIncident.id}</div>
+          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{activeIncident.notes}</div>
+        </div>
+      ) : null}
       <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
         <button onClick={handleCommandCenter} style={{ border: 0, borderRadius: 18, padding: 16, background: "var(--navy)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
           Contact Command Center

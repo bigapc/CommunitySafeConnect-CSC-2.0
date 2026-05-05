@@ -1,14 +1,13 @@
 import SectionHeader from "../components/ui/SectionHeader";
 import IncidentCard from "../components/incident/IncidentCard";
-import { mockIncidents } from "../data/mockIncidents";
 
-export default function IncidentLog({ onShowModal }) {
+export default function IncidentLog({ onShowModal, incidents = [] }) {
   const handleExport = () => {
     onShowModal(
       "Export Incident Log",
       <div>
         <p style={{ color: "var(--muted)", marginBottom: 12 }}>
-          Ready to export {mockIncidents.length} incident records as CSV?
+          Ready to export {incidents.length} incident records as CSV?
         </p>
         <p style={{ fontSize: 13, color: "var(--navy)", fontWeight: 600 }}>
           📊 incident-log.csv
@@ -22,7 +21,7 @@ export default function IncidentLog({ onShowModal }) {
           onClick: () => {
             const csv = [
               ["Incident Type", "Status", "Location", "Date", "Notes"],
-              ...mockIncidents.map((i) => [i.type, i.status, i.location, i.date, i.notes]),
+              ...incidents.map((i) => [i.type, i.status, i.location, i.createdAt || "", i.notes]),
             ]
               .map((row) => row.join(","))
               .join("\n");
@@ -42,7 +41,7 @@ export default function IncidentLog({ onShowModal }) {
   return (
     <div>
       <SectionHeader title="Incident Log" action="Export" onAction={handleExport} />
-      {mockIncidents.map((incident) => (
+      {incidents.map((incident) => (
         <IncidentCard key={incident.id} incident={incident} onShowModal={onShowModal} />
       ))}
     </div>
