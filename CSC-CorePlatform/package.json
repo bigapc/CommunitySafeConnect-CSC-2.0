@@ -1,0 +1,11 @@
+{
+  "name": "csc-coreplatform",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "public": "npm --prefix apps/public-app run dev",
+    "hub": "npm --prefix apps/control-hub run dev",
+    "build:public": "npm --prefix apps/public-app run build",
+    "build:hub": "npm --prefix apps/control-hub run build"
+  }
+}

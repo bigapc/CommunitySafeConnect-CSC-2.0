@@ -1,0 +1,13 @@
+:root {
+  --hub-bg: #0d1727;
+  --hub-panel: #132033;
+  --hub-panel-2: #162841;
+  --hub-text: #edf3fb;
+  --hub-muted: #9fb0c6;
+  --hub-red: #f06a75;
+  --hub-green: #63c49a;
+  --hub-blue: #5aa0ff;
+  --hub-line: #20344f;
+  --hub-shadow: 0 16px 38px rgba(0,0,0,.22);
+  --hub-radius: 22px;
+}

@@ -1,0 +1,13 @@
+:root {
+  --navy: #10233f;
+  --navy-2: #18355d;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #122033;
+  --muted: #6d7887;
+  --green: #58b88a;
+  --red: #d9545d;
+  --line: #e7ecf3;
+  --shadow: 0 14px 40px rgba(16, 35, 63, 0.08);
+  --radius: 22px;
+}
