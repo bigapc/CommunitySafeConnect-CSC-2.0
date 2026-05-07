@@ -16,6 +16,7 @@ import { mockResponders } from "./data/mockResponders";
 import { mockHubZones } from "./data/mockSafeZones";
 import { mockOrganizations } from "./data/mockOrganizations";
 import { mockBroadcasts } from "./data/mockBroadcasts";
+import { queueIntegrationEvent } from "../../../shared/utils/integrationBridge";
 
 const pages = {
   dashboard: Dashboard,
@@ -240,6 +241,14 @@ function HubApp({ user, onSignOut }) {
       createdAt: timestampNow(),
     };
     setBroadcasts((prev) => [broadcast, ...prev]);
+    queueIntegrationEvent({
+      sourceApp: "control-hub",
+      entityType: "broadcasts",
+      action: "broadcast.created",
+      entityId: broadcast.id,
+      payload: broadcast,
+      sourceUser: user,
+    });
     return broadcast;
   };
 
@@ -334,6 +343,7 @@ function HubApp({ user, onSignOut }) {
   }, []);
 
   const sharedProps = {
+    user,
     route,
     onNavigate: setRoute,
     incidents,

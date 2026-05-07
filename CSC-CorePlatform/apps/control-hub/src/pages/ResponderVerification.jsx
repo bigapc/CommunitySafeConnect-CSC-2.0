@@ -1,6 +1,7 @@
 import ResponderCard from "../components/responders/ResponderCard";
+import { queueIntegrationEvent } from "../../../../shared/utils/integrationBridge";
 
-export default function ResponderVerification({ responders = [], setResponders, showModal }) {
+export default function ResponderVerification({ responders = [], setResponders, showModal, user }) {
   const setResponderStatus = (responder, status) => {
     setResponders((prev) =>
       prev.map((item) =>
@@ -13,6 +14,14 @@ export default function ResponderVerification({ responders = [], setResponders, 
           : item
       )
     );
+    queueIntegrationEvent({
+      sourceApp: "control-hub",
+      entityType: "responders",
+      action: "responder.status_updated",
+      entityId: responder.id,
+      payload: { status, name: responder.name },
+      sourceUser: user,
+    });
   };
 
   return (

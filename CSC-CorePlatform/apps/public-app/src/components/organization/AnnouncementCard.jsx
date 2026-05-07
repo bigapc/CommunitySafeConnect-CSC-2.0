@@ -1,6 +1,6 @@
-export default function AnnouncementCard({ item }) {
+export default function AnnouncementCard({ item, onOpen }) {
   const handleClick = () => {
-    alert(`Announcement: ${item.title}\n\n${item.message}\n\nPosted: ${item.date}`);
+    onOpen?.(item);
   };
 
   return (

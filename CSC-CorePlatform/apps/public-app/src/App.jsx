@@ -15,6 +15,7 @@ import UserProfile from "./pages/UserProfile";
 import LoginPage from "./pages/LoginPage";
 import { AuthProvider, useAuth, HUB_ROLES } from "./context/AuthContext";
 import { mockIncidents } from "./data/mockIncidents";
+import { queueIntegrationEvent } from "../../../shared/utils/integrationBridge";
 import "./styles/animations.css";
 
 const screens = {
@@ -116,6 +117,14 @@ function AppInner() {
     };
 
     setIncidents((prev) => [incident, ...prev]);
+    queueIntegrationEvent({
+      sourceApp: "public-app",
+      entityType: "incidents",
+      action: "incident.created",
+      entityId: incident.id,
+      payload: incident,
+      sourceUser: user,
+    });
     return incident;
   };
 

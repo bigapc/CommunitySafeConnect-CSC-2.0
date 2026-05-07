@@ -1,7 +1,6 @@
-export default function TaskCard({ task }) {
+export default function TaskCard({ task, onOpen }) {
   const handleClick = () => {
-    const action = task.status === "Completed" ? "View" : "Start working on";
-    alert(`${action} task: ${task.title}\n\nStatus: ${task.status}\n\nClick here to open task details.`);
+    onOpen?.(task);
   };
 
   const statusColor = task.status === "Completed" ? "var(--green)" : task.status === "In Progress" ? "var(--accent)" : "var(--navy)";

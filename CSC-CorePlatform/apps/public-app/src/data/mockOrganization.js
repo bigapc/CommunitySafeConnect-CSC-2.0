@@ -1,6 +1,9 @@
 export const mockOrganization = {
   id: "org-001",
   name: "Northside Charter Academy",
+  type: "School",
+  status: "active",
+  coordinator: "A. Coleman",
   announcements: [
     { id: "a-1", title: "Safety update", message: "Campus perimeter check completed.", date: "Today" },
   ],

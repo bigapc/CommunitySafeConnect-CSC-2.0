@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import IncidentRow from "../components/incidents/IncidentRow";
 import IncidentTimeline from "../components/incidents/IncidentTimeline";
+import { queueIntegrationEvent } from "../../../../shared/utils/integrationBridge";
 
-export default function IncidentConsole({ incidents = [], responders = [], updateIncident, addIncidentEvent, showModal }) {
+export default function IncidentConsole({ incidents = [], responders = [], updateIncident, addIncidentEvent, showModal, user }) {
   const [filter, setFilter] = useState("all");
   const [selectedIncidentId, setSelectedIncidentId] = useState(incidents[0]?.id || null);
 
@@ -18,12 +19,28 @@ export default function IncidentConsole({ incidents = [], responders = [], updat
     if (action === "acknowledge") {
       updateIncident(incident.id, { status: "acknowledged" });
       addIncidentEvent(incident.id, "Incident acknowledged by dispatcher.");
+      queueIntegrationEvent({
+        sourceApp: "control-hub",
+        entityType: "incidents",
+        action: "incident.acknowledged",
+        entityId: incident.id,
+        payload: { status: "acknowledged" },
+        sourceUser: user,
+      });
       return;
     }
 
     if (action === "resolve") {
       updateIncident(incident.id, { status: "resolved" });
       addIncidentEvent(incident.id, "Incident marked as resolved.");
+      queueIntegrationEvent({
+        sourceApp: "control-hub",
+        entityType: "incidents",
+        action: "incident.resolved",
+        entityId: incident.id,
+        payload: { status: "resolved" },
+        sourceUser: user,
+      });
       return;
     }
 
@@ -39,6 +56,14 @@ export default function IncidentConsole({ incidents = [], responders = [], updat
             onClick: () => {
               updateIncident(incident.id, { priority: "critical", status: "acknowledged" });
               addIncidentEvent(incident.id, "Incident escalated to senior security command.");
+              queueIntegrationEvent({
+                sourceApp: "control-hub",
+                entityType: "incidents",
+                action: "incident.escalated",
+                entityId: incident.id,
+                payload: { priority: "critical", status: "acknowledged" },
+                sourceUser: user,
+              });
             },
           },
         ]
@@ -49,6 +74,14 @@ export default function IncidentConsole({ incidents = [], responders = [], updat
     if (action === "assign") {
       updateIncident(incident.id, { assignedTo: payload, status: "acknowledged" });
       addIncidentEvent(incident.id, `Assigned to responder: ${payload}.`);
+      queueIntegrationEvent({
+        sourceApp: "control-hub",
+        entityType: "incidents",
+        action: "incident.assigned",
+        entityId: incident.id,
+        payload: { assignedTo: payload, status: "acknowledged" },
+        sourceUser: user,
+      });
     }
   };
 
