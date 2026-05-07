@@ -1,5 +1,6 @@
 const items = [
   ["dashboard", "Dashboard"],
+  ["master", "APC Master Control"],
   ["incidents", "Incident Console"],
   ["organizations", "Organizations"],
   ["responders", "Responder Verification"],

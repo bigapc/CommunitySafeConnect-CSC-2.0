@@ -3,6 +3,7 @@ import HubLayout from "./components/layout/HubLayout";
 import HubModal from "./components/ui/HubModal";
 import HubAccessGate from "./components/auth/HubAccessGate";
 import Dashboard from "./pages/Dashboard";
+import MasterControlCenter from "./pages/MasterControlCenter";
 import IncidentConsole from "./pages/IncidentConsole";
 import Organizations from "./pages/Organizations";
 import ResponderVerification from "./pages/ResponderVerification";
@@ -20,6 +21,7 @@ import { queueIntegrationEvent } from "../../../shared/utils/integrationBridge";
 
 const pages = {
   dashboard: Dashboard,
+  master: MasterControlCenter,
   incidents: IncidentConsole,
   organizations: Organizations,
   responders: ResponderVerification,
