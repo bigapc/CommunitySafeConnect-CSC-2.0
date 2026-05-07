@@ -19,7 +19,7 @@ function RecenterMap({ center }) {
   return null;
 }
 
-export default function LiveSafeZoneMap({ userPosition, zones, selectedZone, onSelectZone }) {
+export default function LiveSafeZoneMap({ userPosition, zones, selectedZone, nearbyZoneIds = [], onSelectZone }) {
   const fallbackCenter = [40.7128, -74.006];
   const zoneCenter = selectedZone?.coordinates || zones[0]?.coordinates;
   const center = userPosition || zoneCenter || fallbackCenter;
@@ -48,15 +48,36 @@ export default function LiveSafeZoneMap({ userPosition, zones, selectedZone, onS
         ) : null}
 
         {safeZones.map((zone) => (
-          <Marker key={zone.id} position={zone.coordinates} eventHandlers={{ click: () => onSelectZone?.(zone) }}>
-            <Popup>
-              <div style={{ minWidth: 160 }}>
-                <strong>{zone.name}</strong>
-                <div>{zone.type}</div>
-                <div>{zone.distance} away</div>
-              </div>
-            </Popup>
-          </Marker>
+          <>
+            {nearbyZoneIds.includes(zone.id) ? (
+              <Circle
+                key={`nearby-${zone.id}`}
+                center={zone.coordinates}
+                radius={120}
+                pathOptions={{ color: "#1f8f59", fillColor: "#1f8f59", fillOpacity: 0.12 }}
+              />
+            ) : null}
+            {selectedZone?.id === zone.id ? (
+              <Circle
+                key={`selected-${zone.id}`}
+                center={zone.coordinates}
+                radius={180}
+                pathOptions={{ color: "#1f3a5a", fillColor: "#1f3a5a", fillOpacity: 0.08 }}
+              />
+            ) : null}
+            <Marker key={zone.id} position={zone.coordinates} eventHandlers={{ click: () => onSelectZone?.(zone) }}>
+              <Popup>
+                <div style={{ minWidth: 160 }}>
+                  <strong>{zone.name}</strong>
+                  <div>{zone.type}</div>
+                  <div>{zone.distanceLabel || zone.distance} away</div>
+                  <div style={{ color: zone.status === "verified" ? "#1f8f59" : "#a26a00", fontWeight: 700, marginTop: 4 }}>
+                    {zone.status === "verified" ? "Verified" : "Pending review"}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </>
         ))}
       </MapContainer>
     </div>

@@ -105,6 +105,7 @@ function AppInner() {
   const createIncident = (payload = {}) => {
     const now = new Date().toISOString();
     const incident = {
+      ...payload,
       id: payload.id || `inc-${Date.now()}`,
       type: payload.type || "SOS",
       status: payload.status || "active",

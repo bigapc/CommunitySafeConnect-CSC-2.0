@@ -1,12 +1,20 @@
-export default function ZoneRow({ zone, onToggleStatus, onOpenMap }) {
+export default function ZoneRow({ zone, linkedIncidentCount = 0, onToggleStatus, onOpenMap }) {
   return (
     <div style={{ background: "var(--hub-panel)", borderRadius: 16, padding: 16, boxShadow: "var(--hub-shadow)", marginBottom: 10, border: "1px solid var(--hub-line)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontWeight: 700 }}>{zone.name}</div>
           {zone.type ? <div style={{ color: "var(--hub-muted)", fontSize: 13 }}>{zone.type}</div> : null}
+          {zone.coordinates ? (
+            <div style={{ color: "var(--hub-muted)", fontSize: 12, marginTop: 4 }}>
+              {zone.coordinates[0].toFixed(4)}, {zone.coordinates[1].toFixed(4)}
+            </div>
+          ) : null}
         </div>
-        <strong style={{ color: zone.status === "verified" ? "var(--hub-green)" : "var(--hub-blue)", textTransform: "capitalize" }}>{zone.status}</strong>
+        <div style={{ textAlign: "right" }}>
+          <strong style={{ color: zone.status === "verified" ? "var(--hub-green)" : "var(--hub-blue)", textTransform: "capitalize" }}>{zone.status}</strong>
+          <div style={{ color: "var(--hub-muted)", fontSize: 12, marginTop: 4 }}>{linkedIncidentCount} linked incidents</div>
+        </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button
