@@ -11,6 +11,9 @@ import Settings from "./pages/Settings";
 import ControlHub from "./pages/ControlHub";
 import CommunityFeed from "./pages/CommunityFeed";
 import EmergencyContacts from "./pages/EmergencyContacts";
+import UserProfile from "./pages/UserProfile";
+import LoginPage from "./pages/LoginPage";
+import { AuthProvider, useAuth, HUB_ROLES } from "./context/AuthContext";
 import { mockIncidents } from "./data/mockIncidents";
 import "./styles/animations.css";
 
@@ -25,6 +28,7 @@ const screens = {
   "control-hub": ControlHub,
   feed: CommunityFeed,
   emergency: EmergencyContacts,
+  profile: UserProfile,
 };
 
 const defaultRole = "community_member";
@@ -56,41 +60,38 @@ function readStoredIncidents() {
   }
 }
 
-function readUrlState() {
+function readInitialRoute() {
   const params = new URLSearchParams(window.location.search);
-  const role = params.get("role") || defaultRole;
   const rawView = params.get("view") || "home";
   const view = routeAliases[rawView] || rawView;
-  return { role, view: screens[view] ? view : "home" };
+  return screens[view] ? view : "home";
 }
 
-function writeUrlState(role, view) {
+function writeUrlRoute(view) {
   const params = new URLSearchParams(window.location.search);
-  params.set("role", role || defaultRole);
   params.set("view", view);
-  const nextUrl = `${window.location.pathname}?${params.toString()}`;
-  window.history.replaceState({}, "", nextUrl);
+  window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
 }
 
-export default function App() {
-  const initial = readUrlState();
-  const [role, setRole] = useState(initial.role);
-  const [route, setRoute] = useState(initial.view);
+function AppInner() {
+  const { user } = useAuth();
+  const role = user?.role || defaultRole;
+  const [route, setRoute] = useState(readInitialRoute);
   const [modal, setModal] = useState({ isOpen: false, title: "", content: null, actions: [] });
   const [incidents, setIncidents] = useState(readStoredIncidents);
 
-  const Screen = screens[route] || Home;
+  // If not logged in, show the login page
+  if (!user) return <LoginPage />;
+
+  // Hub-only routes: redirect non-hub users back to home
+  const hubOnlyRoutes = ["control-hub"];
+  const resolvedRoute = hubOnlyRoutes.includes(route) && !HUB_ROLES.includes(role) ? "home" : route;
+  const Screen = screens[resolvedRoute] || Home;
 
   const handleNavigate = (nextRoute) => {
     const resolved = screens[nextRoute] ? nextRoute : "home";
     setRoute(resolved);
-    writeUrlState(role, resolved);
-  };
-
-  const handleRoleChange = (nextRole) => {
-    const resolvedRole = nextRole || defaultRole;
-    setRole(resolvedRole);
-    writeUrlState(resolvedRole, route);
+    writeUrlRoute(resolved);
   };
 
   const showModal = (title, content, actions = []) => {
@@ -110,6 +111,7 @@ export default function App() {
       location: payload.location || "Location shared with Command Center",
       createdAt: now,
       notes: payload.notes || "Emergency support activated.",
+      reportedBy: user?.fullName || "Anonymous",
     };
 
     setIncidents((prev) => [incident, ...prev]);
@@ -135,14 +137,14 @@ export default function App() {
 
   return (
     <>
-      <PublicLayout route={route} onNavigate={handleNavigate} role={role}>
+      <PublicLayout route={resolvedRoute} onNavigate={handleNavigate} role={role} user={user}>
         <Screen
           onNavigate={handleNavigate}
           role={role}
-          onRoleChange={handleRoleChange}
           onShowModal={showModal}
           incidents={incidents}
           onCreateIncident={createIncident}
+          user={user}
         />
       </PublicLayout>
       <Modal
@@ -154,5 +156,13 @@ export default function App() {
         {modal.content}
       </Modal>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }
