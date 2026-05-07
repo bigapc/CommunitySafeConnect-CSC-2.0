@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import AddContactForm from "../components/forms/AddContactForm";
 import SectionHeader from "../components/ui/SectionHeader";
 
-const emergencyContacts = [
+const systemContacts = [
   { id: "ec-1", name: "911 Emergency", phone: "911", type: "Emergency Services", priority: "critical" },
   { id: "ec-2", name: "Poison Control", phone: "(555) 123-4567", type: "Medical", priority: "high" },
   { id: "ec-3", name: "Mental Health Crisis", phone: "(555) 987-6543", type: "Mental Health", priority: "high" },
@@ -9,15 +10,53 @@ const emergencyContacts = [
   { id: "ec-5", name: "Fire Department", phone: "(555) 345-6789", type: "Emergency Services", priority: "high" },
 ];
 
-export default function EmergencyContacts({ onShowModal }) {
-  const [favorites, setFavorites] = useState(["ec-1"]);
-  const [recentCalls, setRecentCalls] = useState([
+const customContactsStorageKey = "csc-custom-emergency-contacts-v1";
+const favoritesStorageKey = "csc-emergency-contact-favorites-v1";
+const recentCallsStorageKey = "csc-emergency-contact-recent-calls-v1";
+
+function readStoredArray(storageKey, fallback) {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return fallback;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export default function EmergencyContacts({ onShowModal, user }) {
+  const [customContacts, setCustomContacts] = useState(() => readStoredArray(customContactsStorageKey, []));
+  const [favorites, setFavorites] = useState(() => readStoredArray(favoritesStorageKey, ["ec-1"]));
+  const [recentCalls, setRecentCalls] = useState(() => readStoredArray(recentCallsStorageKey, [
     { id: "rc-1", contact: "911 Emergency", date: "Today 2:15 PM", duration: "5 min" },
     { id: "rc-2", contact: "Local Police Non-Emergency", date: "Yesterday 10:30 AM", duration: "3 min" },
-  ]);
+  ]));
+
+  const contacts = useMemo(() => [...customContacts, ...systemContacts], [customContacts]);
+
+  const persistState = (nextCustomContacts, nextFavorites = favorites, nextRecentCalls = recentCalls) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(customContactsStorageKey, JSON.stringify(nextCustomContacts));
+    window.localStorage.setItem(favoritesStorageKey, JSON.stringify(nextFavorites));
+    window.localStorage.setItem(recentCallsStorageKey, JSON.stringify(nextRecentCalls));
+  };
 
   const handleToggleFavorite = (id) => {
-    setFavorites((prev) => (prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]));
+    setFavorites((prev) => {
+      const nextFavorites = prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id];
+      persistState(customContacts, nextFavorites, recentCalls);
+      return nextFavorites;
+    });
   };
 
   const handleCall = (contact) => {
@@ -43,15 +82,103 @@ export default function EmergencyContacts({ onShowModal }) {
           primary: true,
           onClick: () => {
             window.location.href = `tel:${contact.phone}`;
-            setRecentCalls((prev) => [
-              {
-                id: `rc-${Date.now()}`,
-                contact: contact.name,
-                date: new Date().toLocaleString(),
-                duration: "just now",
-              },
-              ...prev,
-            ]);
+            const nextCall = {
+              id: `rc-${Date.now()}`,
+              contact: contact.name,
+              date: new Date().toLocaleString(),
+              duration: "just now",
+            };
+            const nextRecentCalls = [nextCall, ...recentCalls].slice(0, 8);
+            setRecentCalls(nextRecentCalls);
+            persistState(customContacts, favorites, nextRecentCalls.slice(0, 8));
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOpenCreateModal = () => {
+    onShowModal(
+      "Add Emergency Contact",
+      <AddContactForm
+        onCancel={() => null}
+        onSubmit={(formData) => {
+          const nextCustomContacts = [
+            {
+              id: `custom-contact-${Date.now()}`,
+              name: formData.name,
+              phone: formData.phone,
+              type: formData.relationship,
+              priority: formData.priority,
+              ownerId: user?.id || "shared",
+            },
+            ...customContacts,
+          ];
+          setCustomContacts(nextCustomContacts);
+          persistState(nextCustomContacts);
+          onShowModal(
+            "Contact Added",
+            <p style={{ color: "var(--muted)" }}>{formData.name} is now available in your emergency contact list.</p>,
+            [{ label: "Done", primary: true }]
+          );
+        }}
+      />,
+      [{ label: "Close", primary: false }]
+    );
+  };
+
+  const handleEditContact = (contact) => {
+    onShowModal(
+      `Edit ${contact.name}`,
+      <AddContactForm
+        initialData={{
+          name: contact.name,
+          relationship: contact.type,
+          phone: contact.phone,
+          priority: contact.priority,
+        }}
+        submitLabel="Save Changes"
+        onCancel={() => null}
+        onSubmit={(formData) => {
+          const nextCustomContacts = customContacts.map((item) =>
+            item.id === contact.id
+              ? {
+                  ...item,
+                  name: formData.name,
+                  phone: formData.phone,
+                  type: formData.relationship,
+                  priority: formData.priority,
+                }
+              : item
+          );
+          setCustomContacts(nextCustomContacts);
+          persistState(nextCustomContacts);
+          onShowModal(
+            "Contact Updated",
+            <p style={{ color: "var(--muted)" }}>{formData.name} has been updated.</p>,
+            [{ label: "Done", primary: true }]
+          );
+        }}
+      />,
+      [{ label: "Close", primary: false }]
+    );
+  };
+
+  const handleDeleteContact = (contact) => {
+    onShowModal(
+      "Delete Contact",
+      <p style={{ color: "var(--muted)" }}>Remove {contact.name} from your emergency contacts?</p>,
+      [
+        { label: "Cancel", primary: false },
+        {
+          label: "Delete",
+          primary: true,
+          onClick: () => {
+            const nextCustomContacts = customContacts.filter((item) => item.id !== contact.id);
+            const nextFavorites = favorites.filter((favoriteId) => favoriteId !== contact.id);
+            setCustomContacts(nextCustomContacts);
+            setFavorites(nextFavorites);
+            persistState(nextCustomContacts, nextFavorites, recentCalls);
           },
         },
       ]
@@ -59,13 +186,14 @@ export default function EmergencyContacts({ onShowModal }) {
   };
 
   const handleViewAnalytics = () => {
+    const categories = [...new Set(contacts.map((contact) => contact.type))];
     onShowModal(
       "Emergency Contact Analytics",
       <div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
           <div style={{ background: "var(--bg-soft)", borderRadius: 12, padding: 12 }}>
             <div style={{ color: "var(--muted)", fontSize: 12 }}>Total Contacts</div>
-            <div style={{ fontWeight: 800, fontSize: 24, color: "var(--navy)" }}>5</div>
+            <div style={{ fontWeight: 800, fontSize: 24, color: "var(--navy)" }}>{contacts.length}</div>
           </div>
           <div style={{ background: "var(--bg-soft)", borderRadius: 12, padding: 12 }}>
             <div style={{ color: "var(--muted)", fontSize: 12 }}>Favorite</div>
@@ -76,18 +204,18 @@ export default function EmergencyContacts({ onShowModal }) {
             <div style={{ fontWeight: 800, fontSize: 24, color: "var(--blue)" }}>{recentCalls.length}</div>
           </div>
           <div style={{ background: "var(--bg-soft)", borderRadius: 12, padding: 12 }}>
-            <div style={{ color: "var(--muted)", fontSize: 12 }}>Average Response</div>
-            <div style={{ fontWeight: 800, fontSize: 24, color: "var(--green)" }}>4.2m</div>
+            <div style={{ color: "var(--muted)", fontSize: 12 }}>Custom Contacts</div>
+            <div style={{ fontWeight: 800, fontSize: 24, color: "var(--green)" }}>{customContacts.length}</div>
           </div>
         </div>
         <div>
           <p style={{ fontWeight: 600, color: "var(--navy)", marginBottom: 8 }}>Contact Categories</p>
           <div style={{ display: "grid", gap: 6 }}>
-            {["Emergency Services", "Medical", "Mental Health", "Law Enforcement"].map((cat) => (
+            {categories.map((cat) => (
               <div key={cat} style={{ background: "var(--bg-soft)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--navy)", fontWeight: 600 }}>{cat}</span>
                 <span style={{ color: "var(--muted)", fontWeight: 600 }}>
-                  {emergencyContacts.filter((c) => c.type === cat).length}
+                  {contacts.filter((c) => c.type === cat).length}
                 </span>
               </div>
             ))}
@@ -98,12 +226,34 @@ export default function EmergencyContacts({ onShowModal }) {
     );
   };
 
-  const favoriteContacts = emergencyContacts.filter((c) => favorites.includes(c.id));
-  const otherContacts = emergencyContacts.filter((c) => !favorites.includes(c.id));
+  const favoriteContacts = contacts.filter((c) => favorites.includes(c.id));
+  const otherContacts = contacts.filter((c) => !favorites.includes(c.id));
 
   return (
     <div>
       <SectionHeader title="Emergency Contacts & Analytics" action="Analytics" onAction={handleViewAnalytics} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 16 }}>
+        <div style={{ background: "#fff", borderRadius: 16, padding: 14, boxShadow: "var(--shadow)" }}>
+          <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 4 }}>Personal Safety Directory</div>
+          <div style={{ color: "var(--navy)", fontWeight: 700 }}>Store trusted contacts and keep quick-call access ready.</div>
+        </div>
+        <button
+          onClick={handleOpenCreateModal}
+          style={{
+            border: 0,
+            borderRadius: 16,
+            padding: "0 16px",
+            background: "var(--navy)",
+            color: "#fff",
+            fontWeight: 700,
+            cursor: "pointer",
+            minWidth: 108,
+          }}
+        >
+          + Add
+        </button>
+      </div>
 
       {favoriteContacts.length > 0 && (
         <>
@@ -141,17 +291,45 @@ export default function EmergencyContacts({ onShowModal }) {
               <div style={{ fontWeight: 700, color: "var(--navy)" }}>{contact.name}</div>
               <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{contact.type}</div>
             </div>
-            <button
-              onClick={() => handleToggleFavorite(contact.id)}
-              style={{
-                background: "none",
-                border: 0,
-                fontSize: 20,
-                cursor: "pointer",
-              }}
-            >
-              {favorites.includes(contact.id) ? "⭐" : "☆"}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {contact.id.startsWith("custom-contact-") ? (
+                <>
+                  <button
+                    onClick={() => handleEditContact(contact)}
+                    style={{
+                      background: "none",
+                      border: 0,
+                      fontSize: 16,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDeleteContact(contact)}
+                    style={{
+                      background: "none",
+                      border: 0,
+                      fontSize: 16,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </>
+              ) : null}
+              <button
+                onClick={() => handleToggleFavorite(contact.id)}
+                style={{
+                  background: "none",
+                  border: 0,
+                  fontSize: 20,
+                  cursor: "pointer",
+                }}
+              >
+                {favorites.includes(contact.id) ? "⭐" : "☆"}
+              </button>
+            </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button

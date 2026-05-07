@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import HubLayout from "./components/layout/HubLayout";
 import HubModal from "./components/ui/HubModal";
+import HubAccessGate from "./components/auth/HubAccessGate";
 import Dashboard from "./pages/Dashboard";
 import IncidentConsole from "./pages/IncidentConsole";
 import Organizations from "./pages/Organizations";
@@ -149,7 +150,7 @@ function normalizePublicIncidentBatch(rawPayload) {
   return payload.incidents;
 }
 
-export default function App() {
+function HubApp({ user, onSignOut }) {
   const initial = readInitialState();
   const [route, setRoute] = useState(initial.route);
   const [incidents, setIncidents] = useState(initial.incidents);
@@ -356,7 +357,7 @@ export default function App() {
 
   return (
     <>
-      <HubLayout route={route} onNavigate={setRoute}>
+      <HubLayout route={route} onNavigate={setRoute} user={user} onSignOut={onSignOut}>
         <Screen {...sharedProps} />
       </HubLayout>
       <HubModal isOpen={modal.isOpen} title={modal.title} onClose={closeModal} actions={modal.actions}>
@@ -364,4 +365,8 @@ export default function App() {
       </HubModal>
     </>
   );
+}
+
+export default function App() {
+  return <HubAccessGate>{({ user, onSignOut }) => <HubApp user={user} onSignOut={onSignOut} />}</HubAccessGate>;
 }

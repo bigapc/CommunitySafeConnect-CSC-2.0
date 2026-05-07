@@ -1,23 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function AddContactForm({ onSubmit, onCancel }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    relationship: "",
-    phone: "",
-  });
+const emptyForm = {
+  name: "",
+  relationship: "",
+  phone: "",
+  priority: "normal",
+};
+
+export default function AddContactForm({ onSubmit, onCancel, initialData, submitLabel = "Add Contact" }) {
+  const [formData, setFormData] = useState(initialData || emptyForm);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setFormData(initialData || emptyForm);
+    setError("");
+  }, [initialData]);
 
   const handleChange = (field, value) => {
+    setError("");
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.phone) {
-      alert("Please fill in all fields");
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      setError("Please add at least a contact name and phone number.");
       return;
     }
-    onSubmit(formData);
-    setFormData({ name: "", relationship: "", phone: "" });
+    onSubmit({
+      name: formData.name.trim(),
+      relationship: formData.relationship || "Other",
+      phone: formData.phone.trim(),
+      priority: formData.priority || "normal",
+    });
+    setFormData(emptyForm);
   };
 
   return (
@@ -45,7 +60,7 @@ export default function AddContactForm({ onSubmit, onCancel }) {
 
       <div style={{ marginBottom: 14 }}>
         <label style={{ display: "block", color: "var(--navy)", fontWeight: 600, marginBottom: 6 }}>
-          Relationship
+          Category
         </label>
         <select
           value={formData.relationship}
@@ -60,12 +75,38 @@ export default function AddContactForm({ onSubmit, onCancel }) {
             boxSizing: "border-box",
           }}
         >
-          <option value="">Select relationship</option>
+          <option value="">Select category</option>
           <option value="Family">Family</option>
           <option value="Friend">Friend</option>
           <option value="Neighbor">Neighbor</option>
-          <option value="Colleague">Colleague</option>
+          <option value="Medical">Medical</option>
+          <option value="Mental Health">Mental Health</option>
+          <option value="Emergency Services">Emergency Services</option>
+          <option value="Law Enforcement">Law Enforcement</option>
           <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: "block", color: "var(--navy)", fontWeight: 600, marginBottom: 6 }}>
+          Priority
+        </label>
+        <select
+          value={formData.priority}
+          onChange={(e) => handleChange("priority", e.target.value)}
+          style={{
+            width: "100%",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            padding: 10,
+            fontSize: 14,
+            fontFamily: "inherit",
+            boxSizing: "border-box",
+          }}
+        >
+          <option value="normal">Normal</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
         </select>
       </div>
 
@@ -89,6 +130,10 @@ export default function AddContactForm({ onSubmit, onCancel }) {
           }}
         />
       </div>
+
+      {error ? (
+        <p style={{ color: "#c62828", fontSize: 13, marginTop: -8, marginBottom: 16 }}>{error}</p>
+      ) : null}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <button
@@ -117,7 +162,7 @@ export default function AddContactForm({ onSubmit, onCancel }) {
             cursor: "pointer",
           }}
         >
-          Add Contact
+          {submitLabel}
         </button>
       </div>
     </div>
