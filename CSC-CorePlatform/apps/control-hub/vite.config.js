@@ -1,0 +1,12 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/hub/" : "/",
+  plugins: [react()],
+  server: {
+    host: true,
+    // Allow GitHub Codespaces forwarded URLs.
+    allowedHosts: true,
+  },
+}));

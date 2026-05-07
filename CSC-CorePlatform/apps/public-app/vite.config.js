@@ -4,4 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/',
   plugins: [react()],
+  server: {
+    host: true,
+    // Allow GitHub Codespaces forwarded URLs.
+    allowedHosts: true,
+  },
 })

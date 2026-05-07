@@ -1,5 +1,18 @@
-export default function SafeZoneCard({ zone, onNavigate, onShowModal }) {
+export default function SafeZoneCard({ zone, onShowModal, onSelect }) {
+  const openDirections = () => {
+    if (!Array.isArray(zone.coordinates) || zone.coordinates.length !== 2) {
+      return;
+    }
+    const [lat, lng] = zone.coordinates;
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
+  };
+
   const handleSelectZone = () => {
+    if (onSelect) {
+      onSelect(zone);
+      return;
+    }
+
     onShowModal(
       `Safe Zone: ${zone.name}`,
       <div>
@@ -23,7 +36,7 @@ export default function SafeZoneCard({ zone, onNavigate, onShowModal }) {
       </div>,
       [
         { label: "Close", primary: false },
-        { label: "Navigate", primary: true },
+        { label: "Navigate", primary: true, onClick: openDirections },
       ]
     );
   };

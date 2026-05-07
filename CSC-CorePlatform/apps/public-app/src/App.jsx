@@ -9,6 +9,8 @@ import IncidentLog from "./pages/IncidentLog";
 import OrganizationHub from "./pages/OrganizationHub";
 import Settings from "./pages/Settings";
 import ControlHub from "./pages/ControlHub";
+import CommunityFeed from "./pages/CommunityFeed";
+import EmergencyContacts from "./pages/EmergencyContacts";
 import { mockIncidents } from "./data/mockIncidents";
 import "./styles/animations.css";
 
@@ -21,6 +23,8 @@ const screens = {
   organization: OrganizationHub,
   settings: Settings,
   "control-hub": ControlHub,
+  feed: CommunityFeed,
+  emergency: EmergencyContacts,
 };
 
 const defaultRole = "community_member";
@@ -29,6 +33,8 @@ const routeAliases = {
 };
 
 const incidentStorageKey = "csc-public-incidents-v1";
+const crossAppIncidentSnapshotKey = "csc-cross-app-public-incident-snapshot-v1";
+const crossAppIncidentEventName = "csc:public-incidents-updated";
 
 function readStoredIncidents() {
   if (typeof window === "undefined") {
@@ -114,7 +120,17 @@ export default function App() {
     if (typeof window === "undefined") {
       return;
     }
+
     window.localStorage.setItem(incidentStorageKey, JSON.stringify(incidents));
+
+    const payload = {
+      source: "public-app",
+      updatedAt: new Date().toISOString(),
+      incidents,
+    };
+
+    window.localStorage.setItem(crossAppIncidentSnapshotKey, JSON.stringify(payload));
+    window.dispatchEvent(new CustomEvent(crossAppIncidentEventName, { detail: payload }));
   }, [incidents]);
 
   return (

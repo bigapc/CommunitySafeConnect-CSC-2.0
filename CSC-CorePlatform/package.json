@@ -6,6 +6,9 @@
     "public": "npm --prefix apps/public-app run dev",
     "hub": "npm --prefix apps/control-hub run dev",
     "build:public": "npm --prefix apps/public-app run build",
-    "build:hub": "npm --prefix apps/control-hub run build"
+    "build:hub": "npm --prefix apps/control-hub run build",
+    "build:same-origin": "npm run build:public && npm run build:hub && node scripts/assemble-same-origin.mjs",
+    "serve:same-origin": "node scripts/serve-same-origin.mjs",
+    "preview:same-origin": "npm run build:same-origin && npm run serve:same-origin"
   }
 }
