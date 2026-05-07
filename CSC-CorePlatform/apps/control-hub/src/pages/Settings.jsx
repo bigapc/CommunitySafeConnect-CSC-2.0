@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   defaultWebhookAuthRegistry,
   defaultWebhookRegistry,
@@ -10,10 +10,38 @@ import {
   saveWebhookRegistry,
 } from "../../../../shared/utils/integrationBridge";
 
+const integrationDaemonSettingsKey = "csc-integration-daemon-settings-v1";
+
+function readDaemonSettings() {
+  if (typeof window === "undefined") {
+    return { enabled: false, intervalMs: 15000 };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(integrationDaemonSettingsKey);
+    if (!raw) {
+      return { enabled: false, intervalMs: 15000 };
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: Boolean(parsed.enabled),
+      intervalMs: Number(parsed.intervalMs) || 15000,
+    };
+  } catch {
+    return { enabled: false, intervalMs: 15000 };
+  }
+}
+
 export default function Settings({ settings, setSettings, resetHubData, showModal }) {
+  const daemonDefaults = readDaemonSettings();
   const [webhooks, setWebhooks] = useState(readWebhookRegistry());
   const [webhookAuth, setWebhookAuth] = useState(readWebhookAuthRegistry());
   const [outbox, setOutbox] = useState(readIntegrationOutbox());
+  const [daemonEnabled, setDaemonEnabled] = useState(daemonDefaults.enabled);
+  const [daemonIntervalMs, setDaemonIntervalMs] = useState(daemonDefaults.intervalMs);
+  const [daemonRunning, setDaemonRunning] = useState(false);
+  const [lastDaemonResult, setLastDaemonResult] = useState(null);
+  const daemonInFlight = useRef(false);
 
   const toggle = (key) => {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -54,6 +82,56 @@ export default function Settings({ settings, setSettings, resetHubData, showModa
   const configuredWebhookCount = Object.values(webhooks).filter(Boolean).length;
   const pendingOutboxCount = outbox.filter((event) => event.delivery !== "delivered").length;
   const failedOutboxCount = outbox.filter((event) => event.delivery === "failed").length;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      integrationDaemonSettingsKey,
+      JSON.stringify({ enabled: daemonEnabled, intervalMs: daemonIntervalMs })
+    );
+  }, [daemonEnabled, daemonIntervalMs]);
+
+  useEffect(() => {
+    if (!daemonEnabled) {
+      setDaemonRunning(false);
+      return;
+    }
+
+    let cancelled = false;
+    const runTick = async () => {
+      if (daemonInFlight.current || cancelled) {
+        return;
+      }
+
+      daemonInFlight.current = true;
+      setDaemonRunning(true);
+
+      try {
+        const summary = await deliverPendingIntegrationEvents({ maxBatch: 25 });
+        if (!cancelled) {
+          setLastDaemonResult({
+            ...summary,
+            ranAt: new Date().toISOString(),
+          });
+        }
+      } finally {
+        daemonInFlight.current = false;
+        if (!cancelled) {
+          setDaemonRunning(false);
+        }
+      }
+    };
+
+    runTick();
+    const intervalId = window.setInterval(runTick, daemonIntervalMs);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [daemonEnabled, daemonIntervalMs]);
 
   const openWebhookSettings = () => {
     const draftWebhooks = { ...defaultWebhookRegistry, ...webhooks };
@@ -128,6 +206,10 @@ export default function Settings({ settings, setSettings, resetHubData, showModa
           primary: true,
           onClick: async () => {
             const result = await deliverPendingIntegrationEvents({ maxBatch: 25 });
+            setLastDaemonResult({
+              ...result,
+              ranAt: new Date().toISOString(),
+            });
             showModal(
               "Delivery Summary",
               <p style={{ color: "var(--hub-muted)" }}>
@@ -174,6 +256,48 @@ export default function Settings({ settings, setSettings, resetHubData, showModa
         <div style={{ fontWeight: 700, marginBottom: 8 }}>Integration Control Center</div>
         <div style={{ color: "var(--hub-muted)", fontSize: 13, marginBottom: 10 }}>
           {configuredWebhookCount} webhook channels configured • {pendingOutboxCount} pending events • {failedOutboxCount} failed events
+        </div>
+        <div style={{ border: "1px solid var(--hub-line)", borderRadius: 12, padding: 12, marginBottom: 10, background: "rgba(255, 255, 255, 0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontWeight: 700 }}>Delivery Daemon</div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--hub-muted)", fontSize: 12 }}>
+              <input type="checkbox" checked={daemonEnabled} onChange={(event) => setDaemonEnabled(event.target.checked)} />
+              {daemonEnabled ? "Enabled" : "Disabled"}
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+            <span style={{ color: "var(--hub-muted)", fontSize: 12 }}>Run every</span>
+            <select
+              value={String(daemonIntervalMs)}
+              onChange={(event) => setDaemonIntervalMs(Number(event.target.value))}
+              style={{ border: "1px solid var(--hub-line)", borderRadius: 10, background: "var(--hub-panel-2)", color: "var(--hub-text)", padding: "6px 8px", fontFamily: "inherit" }}
+            >
+              <option value="10000">10s</option>
+              <option value="15000">15s</option>
+              <option value="30000">30s</option>
+              <option value="60000">60s</option>
+            </select>
+            <button
+              onClick={async () => {
+                const result = await deliverPendingIntegrationEvents({ maxBatch: 25 });
+                setLastDaemonResult({
+                  ...result,
+                  ranAt: new Date().toISOString(),
+                });
+              }}
+              style={{ border: "1px solid var(--hub-line)", borderRadius: 10, padding: "6px 10px", background: "transparent", color: "var(--hub-text)", cursor: "pointer", fontWeight: 600 }}
+            >
+              Run Now
+            </button>
+          </div>
+          <div style={{ color: daemonRunning ? "var(--hub-blue)" : "var(--hub-muted)", fontSize: 12 }}>
+            Status: {daemonRunning ? "running delivery cycle" : daemonEnabled ? "idle and waiting for next cycle" : "not running"}
+          </div>
+          {lastDaemonResult ? (
+            <div style={{ color: "var(--hub-muted)", fontSize: 12, marginTop: 6 }}>
+              Last run {new Date(lastDaemonResult.ranAt).toLocaleTimeString()} • attempted {lastDaemonResult.attempted}, delivered {lastDaemonResult.delivered}, failed {lastDaemonResult.failed}, skipped {lastDaemonResult.skipped}
+            </div>
+          ) : null}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
