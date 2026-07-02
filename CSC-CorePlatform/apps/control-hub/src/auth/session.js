@@ -3,12 +3,12 @@ export const SESSION_KEY = "csc-auth-session-v1";
 export const DEMO_ACCOUNTS = [
   {
     id: "user-001",
-    email: "admin@csc.app",
-    password: "Admin2026!",
-    fullName: "Alex Armstrong",
+    email: "apjune3@gmail.com",
+    password: "Apcdaily123@$",
+    fullName: "Darrell Armstrong",
     role: "apc_admin",
     org: "Armstrong Pack Company",
-    avatar: "AA",
+    avatar: "DA",
   },
   {
     id: "user-002",
@@ -67,9 +67,12 @@ export function saveSession(user) {
 }
 
 export function authenticateHubUser(email, password) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPassword = password.trim();
+
   const account = DEMO_ACCOUNTS.find(
     (candidate) =>
-      candidate.email.toLowerCase() === email.trim().toLowerCase() && candidate.password === password
+      candidate.email.toLowerCase() === normalizedEmail && candidate.password.trim() === normalizedPassword
   );
 
   if (!account) {

@@ -36,7 +36,22 @@ const storageKey = "csc-control-hub-state-v1";
 const crossAppIncidentSnapshotKey = "csc-cross-app-public-incident-snapshot-v1";
 const crossAppIncidentEventName = "csc:public-incidents-updated";
 
+function readRouteFromUrl() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const value = new URLSearchParams(window.location.search).get("page")?.trim();
+  if (!value || !pages[value]) {
+    return null;
+  }
+
+  return value;
+}
+
 function readInitialState() {
+  const routeFromUrl = readRouteFromUrl();
+
   if (typeof window === "undefined") {
     return {
       incidents: mockHubIncidents,
@@ -49,7 +64,7 @@ function readInitialState() {
         criticalEscalation: true,
         smsBridge: false,
       },
-      route: "dashboard",
+      route: routeFromUrl || "dashboard",
     };
   }
 
@@ -83,7 +98,7 @@ function readInitialState() {
         criticalEscalation: true,
         smsBridge: false,
       },
-      route: pages[parsed.route] ? parsed.route : "dashboard",
+      route: routeFromUrl || (pages[parsed.route] ? parsed.route : "dashboard"),
     };
   } catch {
     return {
@@ -97,7 +112,7 @@ function readInitialState() {
         criticalEscalation: true,
         smsBridge: false,
       },
-      route: "dashboard",
+      route: routeFromUrl || "dashboard",
     };
   }
 }

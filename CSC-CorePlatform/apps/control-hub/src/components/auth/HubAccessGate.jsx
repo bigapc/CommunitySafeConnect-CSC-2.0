@@ -2,12 +2,27 @@ import { useEffect, useState } from "react";
 import { DEMO_ACCOUNTS, HUB_ROLES, authenticateHubUser, loadSession, saveSession } from "../../auth/session";
 
 const allowedAccounts = DEMO_ACCOUNTS.filter((account) => HUB_ROLES.includes(account.role));
+const HUB_LOGIN_DISABLED = true;
 
 export default function HubAccessGate({ children }) {
   const [user, setUser] = useState(() => loadSession());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  if (HUB_LOGIN_DISABLED) {
+    const bypassUser =
+      allowedAccounts[0] || {
+        id: "hub-bypass-user",
+        email: "local@csc.app",
+        fullName: "CSC Hub Local Access",
+        role: "csc_supervisor",
+        org: "CSC Operations",
+        avatar: "CS",
+      };
+
+    return children({ user: bypassUser, onSignOut: () => null });
+  }
 
   useEffect(() => {
     saveSession(user);
