@@ -14,6 +14,11 @@ This app is intentionally kept separate from other CSC and CommunitySafeConnect 
 
 If integration is ever needed, it must be implemented as an explicit opt-in connector with clear approvals.
 
+## Brand Notice
+
+Powered by Armstrong Pack Company.
+Copyright 2026 Armstrong Pack Company. All rights reserved.
+
 ## Local Development
 
 1. Install dependencies:

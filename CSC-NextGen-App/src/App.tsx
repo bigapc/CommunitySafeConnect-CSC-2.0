@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import './App.css'
 
 function App() {
+  const currentYear = new Date().getFullYear()
   const generatedAt = useMemo(
     () =>
       new Intl.DateTimeFormat('en-US', {
@@ -116,6 +117,10 @@ function App() {
           This CSC-NextGen-App is intentionally separate from all other CommunitySafeConnect
           and CSC applications for business purposes: separate repository path, separate runtime,
           separate authentication, and no shared automatic data or service connections.
+        </p>
+        <p className="brand-copy">
+          Powered by Armstrong Pack Company. Copyright {currentYear} Armstrong Pack Company.
+          All rights reserved.
         </p>
       </section>
     </main>

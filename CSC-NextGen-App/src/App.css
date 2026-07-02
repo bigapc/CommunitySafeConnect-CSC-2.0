@@ -212,6 +212,14 @@ h2 {
   font-size: 0.9rem;
 }
 
+.brand-copy {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(219, 232, 245, 0.24);
+  color: #f4f9ff;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 900px) {
   .stats-grid,
   .board-grid {
